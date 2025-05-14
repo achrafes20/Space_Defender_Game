@@ -10,21 +10,10 @@ public class Enemy {
     private int health;
     private int maxHealth;
 
-    public int getHealth() {
-        return health;
-    }
-
-    public int getMaxHealth() {
-        return maxHealth;
-    }
-
-    public int getCenterX() {
-        return x + width/2;
-    }
-
-    public int getCenterY() {
-        return y + height/2;
-    }
+    public int getHealth() { return health; }
+    public int getMaxHealth() { return maxHealth; }
+    public int getCenterX() { return x + width/2; }
+    public int getCenterY() { return y + height/2; }
 
     public Enemy(int startX, int startY, int baseSpeed, int type) {
         this.x = startX;
@@ -74,7 +63,6 @@ public class Enemy {
     public void draw(Graphics g) {
         if (alive) {
             g.drawImage(image, x, y, width, height, null);
-
             if (type == 2) {
                 g.setColor(Color.RED);
                 g.fillRect(x, y - 10, width, 5);

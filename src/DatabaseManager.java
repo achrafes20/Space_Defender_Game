@@ -34,13 +34,10 @@ public class DatabaseManager {
         String sql = "SELECT player_name, score, level, difficulty, " +
                 "DATE_FORMAT(achieved_on, '%d/%m/%Y %H:%i') as date " +
                 "FROM game_results ORDER BY score DESC LIMIT ?";
-
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-
             stmt.setInt(1, limit);
             ResultSet rs = stmt.executeQuery();
-
             while (rs.next()) {
                 String entry = String.format("%s - %d pts (Niv.%d %s) le %s",
                         rs.getString("player_name"),
@@ -48,7 +45,6 @@ public class DatabaseManager {
                         rs.getInt("level"),
                         rs.getString("difficulty"),
                         rs.getString("date"));
-
                 scores.add(entry);
             }
         } catch (SQLException e) {
@@ -66,7 +62,6 @@ public class DatabaseManager {
                 "difficulty VARCHAR(20) NOT NULL, " +
                 "achieved_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
                 ")";
-
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);

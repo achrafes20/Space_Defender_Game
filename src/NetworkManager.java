@@ -1,11 +1,11 @@
+import javax.swing.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 public class NetworkManager {
     private static final int PORT = 5555;
-    private static final String SERVER_IP = "localhost";
-
     private Socket socket;
     private PrintWriter out;
     private BufferedReader in;
@@ -13,15 +13,18 @@ public class NetworkManager {
     private List<String> chatMessages = new ArrayList<>();
     private List<PlayerData> otherPlayers = new ArrayList<>();
     private GamePanel gamePanel;
+    private boolean isCompetitive;
+    private String currentMatchId;
 
-    public NetworkManager(String playerName, GamePanel gamePanel) {
+    public NetworkManager(String playerName, GamePanel gamePanel, boolean isCompetitive) {
         this.playerName = playerName;
         this.gamePanel = gamePanel;
+        this.isCompetitive = isCompetitive;
     }
 
-    public boolean connect() {
+    public boolean connect(String serverIP) {
         try {
-            socket = new Socket(SERVER_IP, PORT);
+            socket = new Socket(serverIP, PORT);
             out = new PrintWriter(socket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
@@ -76,15 +79,36 @@ public class NetworkManager {
             String[] parts = message.substring("SCORE_UPDATE:".length()).split(":");
             String player = parts[0];
             int points = Integer.parseInt(parts[1]);
-
             if (player.equals(this.playerName)) {
                 gamePanel.addScore(points);
             } else {
                 otherPlayers.stream()
                         .filter(p -> p.getName().equals(player))
                         .findFirst()
-                        .ifPresent(p -> p.update(p.getX(), p.getY(), p.getScore() + points));
+                        .ifPresent(p -> p.update(p.getX(), p.getY(), p.getScore() + points,p.getHealth()));
             }
+        }
+        else if (message.startsWith("MATCH_START:")) {
+            String[] parts = message.substring("MATCH_START:".length()).split(":");
+            currentMatchId = parts[0];
+            String opponent = parts[1];
+            gamePanel.setOpponentName(opponent);
+        }
+        else if (message.startsWith("MATCH_INVITE:")) {
+            String opponent = message.substring("MATCH_INVITE:".length());
+            int response = JOptionPane.showConfirmDialog(gamePanel,
+                    opponent + " wants to play 1vs1. Accept?", "Match Invitation",
+                    JOptionPane.YES_NO_OPTION);
+
+            if (response == JOptionPane.YES_OPTION) {
+                out.println("MATCH_ACCEPT:" + opponent);
+            } else {
+                out.println("MATCH_DECLINE:" + opponent);
+            }
+        }
+        else if (message.startsWith("MATCH_DECLINED:")) {
+            String opponent = message.substring("MATCH_DECLINED:".length());
+            JOptionPane.showMessageDialog(gamePanel, opponent + " declined your invitation");
         }
     }
 
@@ -99,29 +123,33 @@ public class NetworkManager {
     }
 
     private void updateOtherPlayers(String updateData) {
-        String[] updates = updateData.split(";");
-        for (String update : updates) {
-            String[] parts = update.split(":");
-            String name = parts[0];
-            int x = Integer.parseInt(parts[1]);
-            int y = Integer.parseInt(parts[2]);
-            int score = Integer.parseInt(parts[3]);
+        String[] parts = updateData.split(":");
+        String name = parts[0];
+        int x = Integer.parseInt(parts[1]);
+        int y = Integer.parseInt(parts[2]);
+        int score = Integer.parseInt(parts[3]);
+        int health = parts.length > 4 ? Integer.parseInt(parts[4]) : 3;
 
-            Optional<PlayerData> player = otherPlayers.stream()
-                    .filter(p -> p.getName().equals(name))
-                    .findFirst();
+        Optional<PlayerData> player = otherPlayers.stream()
+                .filter(p -> p.getName().equals(name))
+                .findFirst();
 
-            if (player.isPresent()) {
-                player.get().update(x, y, score);
-            } else {
-                otherPlayers.add(new PlayerData(name, x, y, score));
-            }
+        if (player.isPresent()) {
+            player.get().update(x, y, score, health); // Ajoutez health à la mise à jour
+        } else {
+            otherPlayers.add(new PlayerData(name, x, y, score, health));
+        }
+
+        // Toujours mettre à jour l'adversaire en mode compétitif
+        if (isCompetitive && name.equals(gamePanel.getOpponentName())) {
+            gamePanel.updateOpponent(x, y, score, health);
         }
     }
 
-    public void sendPlayerUpdate(int x, int y, int score) {
+    public void sendPlayerUpdate(int x, int y, int score, int health) {
         if (out != null) {
-            out.println("UPDATE:" + x + ":" + y + ":" + score);
+            String message = "UPDATE:" + x + ":" + y + ":" + score + ":" + health;
+            out.println(message);
         }
     }
 
@@ -146,6 +174,12 @@ public class NetworkManager {
     public void sendScoreUpdate(String playerName, int points) {
         if (out != null) {
             out.println("SCORE_UPDATE:" + playerName + ":" + points);
+        }
+    }
+
+    public void sendMatchRequest(String opponent) {
+        if (out != null) {
+            out.println("MATCH_REQUEST:" + opponent);
         }
     }
 
@@ -175,27 +209,44 @@ public class NetworkManager {
         private String name;
         private int x, y;
         private int score;
+        private int health;
 
         public PlayerData(String name) {
-            this(name, 0, 0, 0);
+            this(name, 0, 0, 0, 3);
         }
 
-        public PlayerData(String name, int x, int y, int score) {
+        public PlayerData(String name, int x, int y, int score, int health) {
             this.name = name;
             this.x = x;
             this.y = y;
             this.score = score;
+            this.health = health;
         }
 
-        public void update(int x, int y, int score) {
+        public void update(int x, int y, int score, int health) {
             this.x = x;
             this.y = y;
             this.score = score;
+            this.health = health;
         }
 
-        public String getName() { return name; }
-        public int getX() { return x; }
-        public int getY() { return y; }
-        public int getScore() { return score; }
+        // Ajoutez getter pour health
+        public int getHealth() { return health; }
+
+
+        public int getScore() {
+            return score ;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public int getX() {
+            return x;
+        }
+        public int getY() {
+            return y;
+        }
     }
 }
