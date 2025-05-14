@@ -11,10 +11,8 @@ public class GamePanel extends JPanel {
     private int score = 0;
     private final Random random = new Random();
     private int spawnTimer = 0;
-
     private int backgroundY = 0;
     private int scrollSpeed = 2;
-
     private final LevelManager levelManager;
     private boolean isLevelTransition = false;
     private long transitionStartTime;
@@ -22,11 +20,11 @@ public class GamePanel extends JPanel {
     private final String playerName;
     private final int initialDifficulty;
     private final GameWindow parent;
-
     private javax.swing.Timer gameTimer;
     private final List<Explosion> explosions = new ArrayList<>();
     public static NetworkManager networkManager;
     private boolean isMultiplayer = false;
+    private boolean isCompetitive = false;
     private JTextArea chatArea;
     private JTextField chatInput;
     private JPanel chatPanel;
@@ -35,20 +33,28 @@ public class GamePanel extends JPanel {
     private Image background = ResourceManager.getImage("/background.png");
     private Image playerLifeIcon;
     private boolean chatActive = false;
+    private String opponentName = "";
+    private int opponentScore = 0;
+    private int opponentHealth = 3;
+    private int opponentX = -100;
+    private int opponentY = -100;
+    private Image opponentShipImage;
 
-    public GamePanel(GameWindow parent, String playerName, int difficulty, int shipType, boolean isMultiplayer) {
+    public GamePanel(GameWindow parent, String playerName, int difficulty, int shipType, boolean isMultiplayer, boolean isCompetitive, String serverIP) {
         this.parent = parent;
         this.playerName = playerName;
         this.initialDifficulty = difficulty;
         this.levelManager = new LevelManager(difficulty);
         this.isMultiplayer = isMultiplayer;
+        this.isCompetitive = isCompetitive;
         this.player = new Player(380, 450, shipType);
         this.playerLifeIcon = ResourceManager.getImage("/ship_" + shipType + ".png")
                 .getScaledInstance(30, 36, Image.SCALE_SMOOTH);
+        this.opponentShipImage = ResourceManager.getImage("/ship_0.png"); // Image par défaut pour l'adversaire
 
         if (isMultiplayer) {
-            this.networkManager = new NetworkManager(playerName, this);
-            if (!networkManager.connect()) {
+            this.networkManager = new NetworkManager(playerName, this, isCompetitive);
+            if (!networkManager.connect(serverIP)) {
                 JOptionPane.showMessageDialog(this, "Connection error", "Error", JOptionPane.ERROR_MESSAGE);
                 parent.showMenu();
                 return;
@@ -71,14 +77,12 @@ public class GamePanel extends JPanel {
                     return;
                 }
 
-                // Basculer la visibilité du chat avec C
                 if (e.getKeyCode() == KeyEvent.VK_C && isMultiplayer) {
                     toggleChatVisibility();
                     e.consume();
                     return;
                 }
 
-                // Si le chat n'est pas actif, gérer les commandes de jeu
                 if (!chatActive) {
                     if (e.getKeyCode() == KeyEvent.VK_SPACE && player.canShoot()) {
                         projectiles.add(new Projectile(player.getCenterX(), player.getY()));
@@ -138,15 +142,12 @@ public class GamePanel extends JPanel {
         chatPanel = new JPanel(new BorderLayout());
         chatPanel.setOpaque(false);
         chatPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-
         JScrollPane scrollPane = new JScrollPane(chatArea);
         scrollPane.setOpaque(false);
         scrollPane.getViewport().setOpaque(false);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-
         chatPanel.add(scrollPane, BorderLayout.CENTER);
         chatPanel.add(chatInput, BorderLayout.SOUTH);
-
         chatPanel.setBounds(10, getHeight() - 180, 180, 100);
         chatPanel.setVisible(false);
         add(chatPanel);
@@ -212,10 +213,10 @@ public class GamePanel extends JPanel {
         updateBackground();
 
         if (isMultiplayer) {
-            networkManager.sendPlayerUpdate(player.getX(), player.getY(), score);
+            networkManager.sendPlayerUpdate(player.getX(), player.getY(), score, player.getHealth());
         }
 
-        if (++spawnTimer >= levelManager.getAdjustedSpawnInterval()) {
+        if (!isCompetitive && ++spawnTimer >= levelManager.getAdjustedSpawnInterval()) {
             int x = random.nextInt(getWidth() - 50);
             int type = random.nextInt(3);
             Enemy newEnemy = new Enemy(x, -50, levelManager.getEnemySpeed(), type);
@@ -232,15 +233,27 @@ public class GamePanel extends JPanel {
 
         handleCollisions();
         handleNetworkCollisions();
+        handleVersusCollisions();
 
         enemies.removeIf(e -> !e.isAlive() || e.isOutOfScreen(getHeight()));
         projectiles.removeIf(p -> !p.isActive());
         networkProjectiles.removeIf(p -> !p.isActive() || p.getY() < 0);
 
-        if (levelManager.isLevelCompleted()) {
+        if (!isCompetitive && levelManager.isLevelCompleted()) {
             isLevelTransition = true;
             transitionStartTime = System.currentTimeMillis();
             SoundManager.playSound("level_up.wav");
+        }
+
+        if (isCompetitive && (player.getHealth() <= 0 || opponentHealth <= 0)) {
+            gameOver = true;
+            SoundManager.playSound("/game_over.wav");
+            DatabaseManager.saveGameResult(
+                    playerName,
+                    score,
+                    levelManager.getCurrentLevel(),
+                    getDifficultyString(initialDifficulty) + (isMultiplayer ? " (Multiplayer)" : "")
+            );
         }
     }
 
@@ -258,11 +271,12 @@ public class GamePanel extends JPanel {
                         projectile.getHitbox().intersects(enemy.getHitbox())) {
                     enemy.takeDamage(1);
                     projectile.setActive(false);
-
                     if (!enemy.isAlive()) {
                         explosions.add(new Explosion(enemy.getCenterX(), enemy.getCenterY()));
                         addScore((enemy.getType() == 0) ? 10 : (enemy.getType() == 1) ? 15 : 30);
-                        levelManager.enemyDefeated();
+                        if (!isCompetitive) {
+                            levelManager.enemyDefeated();
+                        }
                         SoundManager.playSound("/explosion.wav");
                     } else {
                         SoundManager.playSound("/hit.wav");
@@ -277,14 +291,14 @@ public class GamePanel extends JPanel {
                 explosions.add(new Explosion(enemy.getCenterX(), enemy.getCenterY()));
                 player.takeDamage();
                 SoundManager.playSound("/player_hit.wav");
-                if (player.getHealth() <= 0) {
+                if (player.getHealth() <= 0 && !isCompetitive) {
                     gameOver = true;
                     SoundManager.playSound("/game_over.wav");
                     DatabaseManager.saveGameResult(
                             playerName,
                             score,
                             levelManager.getCurrentLevel(),
-                            getDifficultyString(initialDifficulty)
+                            getDifficultyString(initialDifficulty) + (isMultiplayer ? " (Multiplayer)" : "")
                     );
                 }
             }
@@ -298,10 +312,11 @@ public class GamePanel extends JPanel {
                         projectile.getHitbox().intersects(enemy.getHitbox())) {
                     enemy.takeDamage(1);
                     projectile.setActive(false);
-
                     if (!enemy.isAlive()) {
                         explosions.add(new Explosion(enemy.getCenterX(), enemy.getCenterY()));
-                        levelManager.enemyDefeated();
+                        if (!isCompetitive) {
+                            levelManager.enemyDefeated();
+                        }
                         SoundManager.playSound("/explosion.wav");
                         if (isMultiplayer) {
                             networkManager.sendScoreUpdate(projectile.getOwner(),
@@ -310,6 +325,46 @@ public class GamePanel extends JPanel {
                     }
                 }
             });
+        });
+    }
+
+    private void handleVersusCollisions() {
+        if (!isCompetitive) return;
+
+        // Check player projectiles hitting opponent
+        // Check player projectiles hitting opponent
+        new ArrayList<>(projectiles).forEach(projectile -> {
+            Rectangle opponentHitbox = new Rectangle(opponentX, opponentY, 50, 60);
+            if (projectile.isActive() && projectile.getHitbox().intersects(opponentHitbox)) {
+                projectile.setActive(false);
+                opponentHealth--;
+                explosions.add(new Explosion(opponentX + 25, opponentY + 30));
+                SoundManager.playSound("/player_hit.wav");
+
+                // Envoyer la mise à jour
+                if (isMultiplayer) {
+                    networkManager.sendPlayerUpdate(player.getX(), player.getY(), score, player.getHealth());
+                }
+
+                if (opponentHealth <= 0) {
+                    gameOver = true;
+                    SoundManager.playSound("/game_over.wav");
+                }
+            }
+        });
+
+        // Check opponent projectiles hitting player
+        new ArrayList<>(networkProjectiles).forEach(projectile -> {
+            if (projectile.isActive() && projectile.getHitbox().intersects(player.getHitbox())) {
+                projectile.setActive(false);
+                player.takeDamage();
+                explosions.add(new Explosion(player.getCenterX(), player.getY() + 30));
+                SoundManager.playSound("/player_hit.wav");
+                if (player.getHealth() <= 0) {
+                    gameOver = true;
+                    SoundManager.playSound("/game_over.wav");
+                }
+            }
         });
     }
 
@@ -324,6 +379,21 @@ public class GamePanel extends JPanel {
     public void addNetworkProjectile(String owner, int x, int y) {
         networkProjectiles.add(new NetworkProjectile(owner, x, y));
         SoundManager.playSound("/shoot.wav");
+    }
+
+    public void updateOpponent(int x, int y, int score, int health) {
+        this.opponentX = x;
+        this.opponentY = y;
+        this.opponentScore = score;
+        this.opponentHealth = health;
+    }
+
+    public void setOpponentName(String name) {
+        this.opponentName = name;
+    }
+
+    public void setOpponentShipImage(int shipType) {
+        this.opponentShipImage = ResourceManager.getImage("/ship_" + shipType + ".png");
     }
 
     private void resetGame() {
@@ -347,40 +417,67 @@ public class GamePanel extends JPanel {
         super.paintComponent(g);
         g.drawImage(background, 0, backgroundY, getWidth(), getHeight(), null);
         g.drawImage(background, 0, backgroundY - getHeight(), getWidth(), getHeight(), null);
+
         enemies.forEach(e -> e.draw(g));
         projectiles.forEach(p -> p.draw(g));
         explosions.forEach(e -> e.draw(g));
         networkProjectiles.forEach(p -> p.draw(g));
         player.draw(g);
+
         if (isMultiplayer) {
-            for (NetworkManager.PlayerData otherPlayer : networkManager.getOtherPlayers()) {
-                drawOtherPlayer(g, otherPlayer);
-            }
+            drawOtherPlayers(g);
         }
-        drawInfoBoard(g);
-        drawLives(g);
+
+        if (!isCompetitive) {
+            drawInfoBoard(g);
+            drawLives(g);
+        }
+        
+
         if (isLevelTransition) {
-            g.setColor(new Color(0, 0, 0, 180));
-            g.fillRect(0, 0, getWidth(), getHeight());
-            g.setColor(Color.YELLOW);
-            g.setFont(new Font("Arial", Font.BOLD, 40));
-            String message = "LEVEL " + (levelManager.getCurrentLevel() + 1) + "!";
-            g.drawString(message,
-                    getWidth() / 2 - g.getFontMetrics().stringWidth(message) / 2,
-                    getHeight() / 2);
+            drawLevelTransition(g);
         }
+
         if (gameOver) {
             drawGameOverScreen(g);
         }
     }
+
+    private void drawOtherPlayers(Graphics g) {
+        if (networkManager != null) {
+            for (NetworkManager.PlayerData playerData : networkManager.getOtherPlayers()) {
+                drawOtherPlayer(g, playerData);
+            }
+        }
+    }
+
     private void drawOtherPlayer(Graphics g, NetworkManager.PlayerData playerData) {
-        Image shipImage = ResourceManager.getImage("/ship_0.png");
+        // Utiliser l'image du vaisseau de l'adversaire
+        Image shipImage = opponentShipImage;
         g.drawImage(shipImage, playerData.getX(), playerData.getY(), 50, 60, null);
+
+        // Dessiner la barre de vie
+
+        // Dessiner le nom et le score
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.PLAIN, 12));
-        g.drawString(playerData.getName(), playerData.getX(), playerData.getY() - 5);
-        g.drawString("Score: " + playerData.getScore(), playerData.getX(), playerData.getY() + 80);
+        g.drawString(playerData.getName(), playerData.getX(), playerData.getY() - 20);
+        g.drawString("Score: " + playerData.getScore(), playerData.getX(), playerData.getY() + 70);
     }
+
+
+
+    private void drawLevelTransition(Graphics g) {
+        g.setColor(new Color(0, 0, 0, 180));
+        g.fillRect(0, 0, getWidth(), getHeight());
+        g.setColor(Color.YELLOW);
+        g.setFont(new Font("Arial", Font.BOLD, 40));
+        String message = "LEVEL " + (levelManager.getCurrentLevel() + 1) + "!";
+        g.drawString(message,
+                getWidth() / 2 - g.getFontMetrics().stringWidth(message) / 2,
+                getHeight() / 2);
+    }
+
     private void drawInfoBoard(Graphics g) {
         Graphics2D g2d = (Graphics2D) g;
         g2d.setColor(new Color(0, 0, 0, 150));
@@ -390,22 +487,24 @@ public class GamePanel extends JPanel {
         g2d.drawRoundRect(getWidth() - 160, 10, 150, 80, 15, 15);
         g2d.setColor(Color.WHITE);
         g2d.setFont(new Font("Arial", Font.BOLD, 12));
+
         int yPos = 30;
         g2d.drawString(playerName, getWidth() - 150, yPos);
         g2d.drawString("Score: " + score, getWidth() - 150, yPos + 20);
         g2d.drawString("Lvl: " + levelManager.getCurrentLevel(), getWidth() - 150, yPos + 40);
-        g2d.drawString("Enemies: " + levelManager.getEnemiesDefeated() + "/" +
-                levelManager.getEnemiesToNextLevel(), getWidth() - 150, yPos + 60);
+
+        if (!isCompetitive) {
+            g2d.drawString("Enemies: " + levelManager.getEnemiesDefeated() + "/" +
+                    levelManager.getEnemiesToNextLevel(), getWidth() - 150, yPos + 60);
+        }
     }
 
     private void drawLives(Graphics g) {
         int x = 20;
         int y = getHeight() - 50;
-
         for (int i = 0; i < player.getHealth(); i++) {
             g.drawImage(playerLifeIcon, x + (i * 35), y, null);
         }
-
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.PLAIN, 14));
         g.drawString("Difficulty: " + getDifficultyString(initialDifficulty), x, y - 20);
@@ -423,10 +522,20 @@ public class GamePanel extends JPanel {
     private void drawGameOverScreen(Graphics g) {
         g.setColor(new Color(0, 0, 0, 200));
         g.fillRect(0, 0, getWidth(), getHeight());
-
         g.setColor(Color.RED);
         g.setFont(new Font("Arial", Font.BOLD, 40));
-        String message = "GAME OVER - Score: " + score;
+
+        String message;
+        if (isCompetitive && isMultiplayer) {
+            if (player.getHealth() <= 0) {
+                message = "YOU LOST!";
+            } else {
+                message = "YOU WON!";
+            }
+        } else {
+            message = "GAME OVER - Score: " + score;
+        }
+
         g.drawString(message,
                 getWidth() / 2 - g.getFontMetrics().stringWidth(message) / 2,
                 getHeight() / 2);
@@ -437,13 +546,18 @@ public class GamePanel extends JPanel {
                 getWidth() / 2 - 100,
                 getHeight() / 2 + 50);
 
-        List<String> highscores = DatabaseManager.getHighScores(20);
-        g.setFont(new Font("Arial", Font.BOLD, 24));
-        g.drawString("Top Scores:", 50, getHeight() / 2 + 100);
-
-        g.setFont(new Font("Arial", Font.PLAIN, 18));
-        for (int i = 0; i < Math.min(5, highscores.size()); i++) {
-            g.drawString(highscores.get(i), 50, getHeight() / 2 + 130 + i * 25);
+        if (!isCompetitive) {
+            List<String> highscores = DatabaseManager.getHighScores(20);
+            g.setFont(new Font("Arial", Font.BOLD, 24));
+            g.drawString("Top Scores:", 50, getHeight() / 2 + 100);
+            g.setFont(new Font("Arial", Font.PLAIN, 18));
+            for (int i = 0; i < Math.min(5, highscores.size()); i++) {
+                g.drawString(highscores.get(i), 50, getHeight() / 2 + 130 + i * 25);
+            }
         }
+    }
+
+    public String getOpponentName() {
+        return opponentName;
     }
 }

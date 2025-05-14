@@ -27,9 +27,9 @@ public class MenuPanel extends JPanel {
         addTitle(gbc);
         addOptionsPanel(gbc);
         addStartButton(gbc);
+        addMultiplayerButton(gbc);
         addHighscoresButton(gbc);
         addSettingsButton(gbc);
-
         setupKeyboardShortcut();
     }
 
@@ -39,23 +39,6 @@ public class MenuPanel extends JPanel {
         title.setForeground(new Color(215, 112, 126));
         title.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
         add(title, gbc);
-    }
-
-    private JPanel createTextWithShadow(JLabel label, int shadowSize) {
-        JLabel shadowLabel = new JLabel(label.getText(), JLabel.CENTER);
-        shadowLabel.setFont(label.getFont());
-        shadowLabel.setForeground(new Color(0, 0, 0, 150));
-
-        JLabel mainLabel = new JLabel(label.getText(), JLabel.CENTER);
-        mainLabel.setFont(label.getFont());
-        mainLabel.setForeground(label.getForeground());
-
-        JPanel container = new JPanel(new BorderLayout());
-        container.setOpaque(false);
-        container.add(shadowLabel, BorderLayout.CENTER);
-        container.add(mainLabel, BorderLayout.NORTH);
-
-        return container;
     }
 
     private void addOptionsPanel(GridBagConstraints gbc) {
@@ -77,49 +60,6 @@ public class MenuPanel extends JPanel {
         addPlayerNameField(optionsPanel, gbcOptions);
         addDifficultyCombo(optionsPanel, gbcOptions);
         addShipCombo(optionsPanel, gbcOptions);
-        addMultiplayerCheckbox(optionsPanel, gbcOptions);
-    }
-
-    private void addMultiplayerCheckbox(JPanel panel, GridBagConstraints gbc) {
-        gbc.gridy++;
-        JCheckBox multiplayerCheck = new JCheckBox("Multiplayer Mode") {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D)g;
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                g2.setColor(new Color(0, 0, 0, 0));
-                g2.fillRect(0, 0, getWidth(), getHeight());
-
-                int boxSize = 14;
-                int yPos = (getHeight() - boxSize) / 2;
-
-                g2.setColor(new Color(50, 50, 80));
-                g2.fillRoundRect(0, yPos, boxSize, boxSize, 4, 4);
-
-                g2.setColor(new Color(100, 100, 150));
-                g2.drawRoundRect(0, yPos, boxSize, boxSize, 4, 4);
-
-                if (isSelected()) {
-                    g2.setColor(Color.WHITE);
-                    g2.setStroke(new BasicStroke(2));
-                    g2.drawLine(2, yPos + 7, 5, yPos + 10);
-                    g2.drawLine(5, yPos + 10, 12, yPos + 2);
-                }
-
-                g2.setColor(Color.WHITE);
-                g2.setFont(getFont());
-                FontMetrics fm = g2.getFontMetrics();
-                int textY = ((getHeight() - fm.getHeight()) / 2) + fm.getAscent();
-                g2.drawString(getText(), boxSize + 6, textY);
-            }
-        };
-        multiplayerCheck.setForeground(Color.WHITE);
-        multiplayerCheck.setBackground(new Color(0, 0, 0, 0));
-        multiplayerCheck.setFont(new Font("Arial", Font.BOLD, 14));
-        multiplayerCheck.setOpaque(false);
-        multiplayerCheck.setFocusPainted(false);
-        panel.add(multiplayerCheck, gbc);
     }
 
     private void addPlayerNameField(JPanel panel, GridBagConstraints gbc) {
@@ -135,13 +75,10 @@ public class MenuPanel extends JPanel {
                 if (!isOpaque()) {
                     Graphics2D g2 = (Graphics2D) g.create();
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
                     g2.setColor(new Color(50, 50, 80));
                     g2.fillRoundRect(0, 0, getWidth(), getHeight(), 6, 6);
-
                     g2.setColor(new Color(100, 100, 150));
                     g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 6, 6);
-
                     g2.dispose();
                 }
                 super.paintComponent(g);
@@ -170,13 +107,10 @@ public class MenuPanel extends JPanel {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
                 g2.setColor(new Color(50, 50, 80));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 6, 6);
-
                 g2.setColor(new Color(100, 100, 150));
                 g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 6, 6);
-
                 g2.dispose();
                 super.paintComponent(g);
             }
@@ -193,6 +127,7 @@ public class MenuPanel extends JPanel {
                 super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                 setBackground(isSelected ? new Color(70, 130, 180) : new Color(50, 50, 80));
                 setForeground(Color.WHITE);
+                setOpaque(true);
                 setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
                 return this;
             }
@@ -218,45 +153,38 @@ public class MenuPanel extends JPanel {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
                 g2.setColor(new Color(50, 50, 80));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 6, 6);
 
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 6, 6);
                 g2.setColor(new Color(100, 100, 150));
                 g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 6, 6);
-
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-
         shipCombo.setFont(new Font("Arial", Font.PLAIN, 12));
         shipCombo.setForeground(Color.black);
         shipCombo.setBackground(new Color(50, 50, 80));
         shipCombo.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
-
         shipCombo.setRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                                                           boolean isSelected, boolean cellHasFocus) {
                 super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-
                 ShipItem item = (ShipItem)value;
                 setText(item.toString());
                 setIcon(new ImageIcon(ResourceManager.getImage("/ship_" + item.type + ".png")
                         .getScaledInstance(40, 40, Image.SCALE_SMOOTH)));
-
                 setBackground(isSelected ? new Color(70, 130, 180) : new Color(50, 50, 80));
                 setForeground(Color.WHITE);
                 setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
                 return this;
             }
         });
-
         panel.add(shipCombo, gbc);
     }
 
-    private class ShipItem {
+    public static class ShipItem {
         String name;
         int type;
 
@@ -278,16 +206,23 @@ public class MenuPanel extends JPanel {
         add(startButton, gbc);
     }
 
+    private void addMultiplayerButton(GridBagConstraints gbc) {
+        gbc.gridy++;
+        JButton multiplayerButton = createStyledButton("MULTIPLAYER", new Color(46, 139, 87));
+        multiplayerButton.addActionListener(e -> parent.showMultiplayerPanel());
+        add(multiplayerButton, gbc);
+    }
+
     private void addHighscoresButton(GridBagConstraints gbc) {
         gbc.gridy++;
-        JButton highscoresButton = createStyledButton("HIGH SCORES", new Color(46, 139, 87));
+        JButton highscoresButton = createStyledButton("HIGH SCORES", new Color(139, 0, 139));
         highscoresButton.addActionListener(e -> showHighscores());
         add(highscoresButton, gbc);
     }
 
     private void addSettingsButton(GridBagConstraints gbc) {
         gbc.gridy++;
-        JButton settingsButton = createStyledButton("SETTINGS", new Color(139, 0, 139));
+        JButton settingsButton = createStyledButton("SETTINGS", new Color(255, 140, 0));
         settingsButton.addActionListener(e -> showSettings());
         add(settingsButton, gbc);
     }
@@ -298,44 +233,34 @@ public class MenuPanel extends JPanel {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
                 GradientPaint gradient = new GradientPaint(
                         0, 0, baseColor.brighter(),
                         0, getHeight(), baseColor.darker());
                 g2.setPaint(gradient);
-
                 int arc = 15;
                 g2.fill(new RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), arc, arc));
-
                 g2.setColor(baseColor.darker().darker());
                 g2.setStroke(new BasicStroke(2));
                 g2.draw(new RoundRectangle2D.Double(1, 1, getWidth()-2, getHeight()-2, arc, arc));
-
                 g2.setColor(new Color(255, 255, 255, 80));
                 g2.fillRoundRect(2, 2, getWidth()-4, getHeight()/2, arc, arc);
-
                 g2.setFont(getFont());
                 FontMetrics fm = g2.getFontMetrics();
                 int x = (getWidth() - fm.stringWidth(getText())) / 2;
                 int y = ((getHeight() - fm.getHeight()) / 2) + fm.getAscent();
-
                 g2.setColor(new Color(0, 0, 0, 100));
                 g2.drawString(getText(), x+1, y+1);
-
                 g2.setColor(Color.WHITE);
                 g2.drawString(getText(), x, y);
-
                 g2.dispose();
             }
         };
-
         button.setFont(new Font("Arial", Font.BOLD, 16));
         button.setForeground(Color.WHITE);
         button.setContentAreaFilled(false);
         button.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
         button.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
@@ -345,12 +270,10 @@ public class MenuPanel extends JPanel {
                 ));
                 SoundManager.playSound("/button_hover.wav");
             }
-
             @Override
             public void mouseExited(MouseEvent e) {
                 button.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
             }
-
             @Override
             public void mousePressed(MouseEvent e) {
                 button.setBorder(BorderFactory.createCompoundBorder(
@@ -359,7 +282,6 @@ public class MenuPanel extends JPanel {
                 ));
             }
         });
-
         return button;
     }
 
@@ -383,7 +305,6 @@ public class MenuPanel extends JPanel {
         String playerName = "Player1";
         int difficulty = 3;
         int shipType = 0;
-        boolean isMultiplayer = false;
 
         Component[] components = ((JPanel)getComponent(1)).getComponents();
         for (Component comp : components) {
@@ -404,12 +325,9 @@ public class MenuPanel extends JPanel {
                     }
                 }
             }
-            else if (comp instanceof JCheckBox) {
-                isMultiplayer = ((JCheckBox)comp).isSelected();
-            }
         }
 
-        parent.startGame(playerName, difficulty, shipType, isMultiplayer);
+        parent.startGame(playerName, difficulty, shipType, false, false, "");
     }
 
     private void showHighscores() {
@@ -426,16 +344,13 @@ public class MenuPanel extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        // Dessiner l'image de fond
         if (backgroundImage != null) {
             g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
         } else {
-            // Fallback si l'image n'est pas chargée
             g.setColor(new Color(10, 10, 30));
             g.fillRect(0, 0, getWidth(), getHeight());
         }
 
-        // Dessiner un overlay semi-transparent pour améliorer la lisibilité
         g.setColor(new Color(0, 0, 0, 120));
         g.fillRect(0, 0, getWidth(), getHeight());
     }

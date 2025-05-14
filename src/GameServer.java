@@ -10,6 +10,7 @@ public class GameServer {
     private ExecutorService pool = Executors.newFixedThreadPool(MAX_PLAYERS);
     private List<ClientHandler> clients = new CopyOnWriteArrayList<>();
     private List<String> chatMessages = new ArrayList<>();
+    private Map<String, Match> matches = new ConcurrentHashMap<>();
 
     public void start() {
         try {
@@ -37,6 +38,23 @@ public class GameServer {
         }
     }
 
+    public void broadcastToMatch(String matchId, String message, ClientHandler exclude) {
+        Match match = matches.get(matchId);
+        if (match != null) {
+            match.getPlayers().forEach(player -> {
+                if (!player.equals(exclude.getPlayerName())) {
+                    findClientByName(player).ifPresent(c -> c.sendMessage(message));
+                }
+            });
+        }
+    }
+
+    private Optional<ClientHandler> findClientByName(String playerName) {
+        return clients.stream()
+                .filter(c -> c.getPlayerName().equals(playerName))
+                .findFirst();
+    }
+
     public void broadcastPlayerList() {
         StringBuilder playerList = new StringBuilder("PLAYER_LIST:");
         for (ClientHandler client : clients) {
@@ -53,7 +71,14 @@ public class GameServer {
 
     public void removeClient(ClientHandler client) {
         clients.remove(client);
+        matches.values().removeIf(match -> match.removePlayer(client.getPlayerName()));
         broadcastPlayerList();
+    }
+
+    public void createMatch(String matchId, String player1, String player2) {
+        matches.put(matchId, new Match(matchId, player1, player2));
+        findClientByName(player1).ifPresent(c -> c.sendMessage("MATCH_START:" + matchId + ":" + player2));
+        findClientByName(player2).ifPresent(c -> c.sendMessage("MATCH_START:" + matchId + ":" + player1));
     }
 
     public void stop() {
@@ -70,18 +95,43 @@ public class GameServer {
         server.start();
     }
 
+    private static class Match {
+        private String matchId;
+        private Set<String> players = new HashSet<>();
+
+        public Match(String matchId, String player1, String player2) {
+            this.matchId = matchId;
+            this.players.add(player1);
+            this.players.add(player2);
+        }
+
+        public boolean removePlayer(String playerName) {
+            players.remove(playerName);
+            return players.isEmpty();
+        }
+
+        public Set<String> getPlayers() {
+            return players;
+        }
+
+        public String getMatchId() {
+            return matchId;
+        }
+    }
+
     private static class ClientHandler implements Runnable {
         private Socket socket;
         private GameServer server;
         private PrintWriter out;
         private BufferedReader in;
         private String playerName;
+        private String currentMatchId;
 
         public ClientHandler(Socket socket, GameServer server) {
             this.socket = socket;
             this.server = server;
         }
-        
+
         @Override
         public void run() {
             try {
@@ -99,16 +149,50 @@ public class GameServer {
                     }
                     else if (message.startsWith("UPDATE:")) {
                         String updateData = message.substring("UPDATE:".length());
-                        server.broadcast("PLAYER_UPDATE:" + playerName + ":" + updateData, this);
+                        if (currentMatchId != null) {
+                            server.broadcastToMatch(currentMatchId, "PLAYER_UPDATE:" + playerName + ":" + updateData, this);
+                        } else {
+                            server.broadcast("PLAYER_UPDATE:" + playerName + ":" + updateData, this);
+                        }
                     }
                     else if (message.startsWith("ENEMY_SPAWN:")) {
-                        server.broadcast(message, this);
+                        if (currentMatchId != null) {
+                            server.broadcastToMatch(currentMatchId, message, this);
+                        } else {
+                            server.broadcast(message, this);
+                        }
                     }
                     else if (message.startsWith("PROJECTILE:")) {
-                        server.broadcast(message, this);
+                        if (currentMatchId != null) {
+                            server.broadcastToMatch(currentMatchId, message, this);
+                        } else {
+                            server.broadcast(message, this);
+                        }
                     }
                     else if (message.startsWith("SCORE_UPDATE:")) {
-                        server.broadcast(message, this);
+                        if (currentMatchId != null) {
+                            server.broadcastToMatch(currentMatchId, message, this);
+                        } else {
+                            server.broadcast(message, this);
+                        }
+                    }
+                    else if (message.startsWith("MATCH_REQUEST:")) {
+                        String opponent = message.substring("MATCH_REQUEST:".length());
+                        server.findClientByName(opponent).ifPresent(c -> {
+                            c.sendMessage("MATCH_INVITE:" + playerName);
+                        });
+                    }
+                    else if (message.startsWith("MATCH_ACCEPT:")) {
+                        String opponent = message.substring("MATCH_ACCEPT:".length());
+                        String matchId = playerName + "_" + opponent + "_" + System.currentTimeMillis();
+                        currentMatchId = matchId;
+                        server.createMatch(matchId, playerName, opponent);
+                    }
+                    else if (message.startsWith("MATCH_DECLINE:")) {
+                        String opponent = message.substring("MATCH_DECLINE:".length());
+                        server.findClientByName(opponent).ifPresent(c -> {
+                            c.sendMessage("MATCH_DECLINED:" + playerName);
+                        });
                     }
                 }
             } catch (IOException e) {

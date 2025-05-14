@@ -19,6 +19,7 @@ public class ResourceManager {
             loadImage("/ship_" + i + ".png");
             loadImage("/enemy_" + (i == 0 ? "basic" : i == 1 ? "fast" : "tank") + ".png");
         }
+
         for (int i = 0; i < 8; i++) {
             loadImage("/explosion_" + i + ".png");
         }

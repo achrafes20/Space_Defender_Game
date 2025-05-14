@@ -9,13 +9,15 @@ public class GameWindow extends JFrame {
     private GamePanel gamePanel;
     private HighscorePanel highscorePanel;
     private SettingsPanel settingsPanel;
+    private MultiplayerPanel multiplayerPanel;
 
     public GameWindow() {
         setTitle("Space Defender");
-        setSize(800, 600);
+        setSize(800, 650);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(false);
         setLocationRelativeTo(null);
+
 
         try {
             ImageIcon icon = new ImageIcon(getClass().getResource("/game_icon.png"));
@@ -40,9 +42,9 @@ public class GameWindow extends JFrame {
         switchToPanel(menuPanel);
     }
 
-    public void startGame(String playerName, int difficulty, int shipType, boolean isMultiplayer) {
+    public void startGame(String playerName, int difficulty, int shipType, boolean isMultiplayer, boolean isCompetitive, String serverIP) {
         cleanUpCurrentPanel();
-        gamePanel = new GamePanel(this, playerName, difficulty, shipType, isMultiplayer);
+        gamePanel = new GamePanel(this, playerName, difficulty, shipType, isMultiplayer, isCompetitive, serverIP);
         switchToPanel(gamePanel);
     }
 
@@ -56,6 +58,12 @@ public class GameWindow extends JFrame {
         cleanUpCurrentPanel();
         settingsPanel = new SettingsPanel(this);
         switchToPanel(settingsPanel);
+    }
+
+    public void showMultiplayerPanel() {
+        cleanUpCurrentPanel();
+        multiplayerPanel = new MultiplayerPanel(this);
+        switchToPanel(multiplayerPanel);
     }
 
     private void cleanUpCurrentPanel() {
@@ -76,6 +84,10 @@ public class GameWindow extends JFrame {
             remove(settingsPanel);
             settingsPanel = null;
         }
+        if (multiplayerPanel != null) {
+            remove(multiplayerPanel);
+            multiplayerPanel = null;
+        }
     }
 
     private void switchToPanel(JPanel panel) {
@@ -88,12 +100,11 @@ public class GameWindow extends JFrame {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             ResourceManager.preloadResources();
-
             GameWindow window = new GameWindow();
             window.setLocationRelativeTo(null);
 
             // Animation d'ouverture
-            window.setOpacity(0f);
+
             Timer fadeIn = new Timer(20, e -> {
                 float opacity = window.getOpacity();
                 if (opacity < 1f) {
@@ -148,6 +159,180 @@ public class GameWindow extends JFrame {
         }
     }
 
+    private static class MultiplayerPanel extends JPanel {
+        public MultiplayerPanel(GameWindow parent) {
+            setLayout(new GridBagLayout());
+            setBackground(new Color(30, 30, 50));
+
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(15, 15, 15, 15);
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            gbc.anchor = GridBagConstraints.CENTER;
+
+            JLabel title = new JLabel("MULTIPLAYER", SwingConstants.CENTER);
+            title.setFont(new Font("Arial", Font.BOLD, 36));
+            title.setForeground(new Color(255, 215, 0));
+            add(title, gbc);
+
+            JPanel optionsPanel = new JPanel(new GridLayout(0, 1, 10, 10));
+            optionsPanel.setBackground(new Color(0, 0, 0, 120));
+            optionsPanel.setBorder(BorderFactory.createLineBorder(new Color(70, 130, 180), 2));
+            gbc.gridy++;
+            add(optionsPanel, gbc);
+
+            // Player Name
+            JPanel namePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            namePanel.setBackground(new Color(0, 0, 0, 0));
+            JLabel nameLabel = new JLabel("Player Name:");
+            nameLabel.setForeground(Color.WHITE);
+            nameLabel.setFont(new Font("Arial", Font.BOLD, 14));
+            namePanel.add(nameLabel);
+
+            JTextField nameField = new JTextField(15);
+            nameField.setText("Player1");
+            nameField.setFont(new Font("Arial", Font.PLAIN, 12));
+            nameField.setForeground(Color.WHITE);
+            nameField.setBackground(new Color(50, 50, 80));
+            nameField.setBorder(BorderFactory.createLineBorder(new Color(100, 100, 150)));
+            namePanel.add(nameField);
+            optionsPanel.add(namePanel);
+
+            // Server IP
+            JPanel ipPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            ipPanel.setBackground(new Color(0, 0, 0, 0));
+            JLabel ipLabel = new JLabel("Server IP:");
+            ipLabel.setForeground(Color.WHITE);
+            ipLabel.setFont(new Font("Arial", Font.BOLD, 14));
+            ipPanel.add(ipLabel);
+
+            JTextField ipField = new JTextField(15);
+            ipField.setText("localhost");
+            ipField.setFont(new Font("Arial", Font.PLAIN, 12));
+            ipField.setForeground(Color.WHITE);
+            ipField.setBackground(new Color(50, 50, 80));
+            ipField.setBorder(BorderFactory.createLineBorder(new Color(100, 100, 150)));
+            ipPanel.add(ipField);
+            optionsPanel.add(ipPanel);
+
+            // Game Mode Selection
+            JPanel modePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            modePanel.setBackground(new Color(0, 0, 0, 0));
+            JLabel modeLabel = new JLabel("Game Mode:");
+            modeLabel.setForeground(Color.WHITE);
+            modeLabel.setFont(new Font("Arial", Font.BOLD, 14));
+            modePanel.add(modeLabel);
+
+            ButtonGroup modeGroup = new ButtonGroup();
+            JRadioButton coopButton = new JRadioButton("Cooperative");
+            JRadioButton versusButton = new JRadioButton("1vs1");
+
+            coopButton.setSelected(true);
+            coopButton.setForeground(Color.WHITE);
+            coopButton.setBackground(new Color(50, 50, 80));
+            coopButton.setOpaque(true);
+            coopButton.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    coopButton.setBackground(new Color(70, 70, 100));
+                }
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    coopButton.setBackground(new Color(50, 50, 80));
+                }
+            });
+
+            versusButton.setForeground(Color.WHITE);
+            versusButton.setBackground(new Color(50, 50, 80));
+            coopButton.setOpaque(true);
+
+            modeGroup.add(coopButton);
+            modeGroup.add(versusButton);
+
+            modePanel.add(coopButton);
+            modePanel.add(versusButton);
+            optionsPanel.add(modePanel);
+
+            // Ship Selection
+            JPanel shipPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            shipPanel.setBackground(new Color(0, 0, 0, 0));
+            JLabel shipLabel = new JLabel("Ship:");
+            shipLabel.setForeground(Color.WHITE);
+            shipLabel.setFont(new Font("Arial", Font.BOLD, 14));
+            shipPanel.add(shipLabel);
+
+            DefaultComboBoxModel<MenuPanel.ShipItem> model = new DefaultComboBoxModel<>();
+            model.addElement(new MenuPanel.ShipItem("Standard", 0));
+            model.addElement(new MenuPanel.ShipItem("Fast", 1));
+            model.addElement(new MenuPanel.ShipItem("Heavy", 2));
+
+            JComboBox<MenuPanel.ShipItem> shipCombo = new JComboBox<>(model);
+            shipCombo.setFont(new Font("Arial", Font.PLAIN, 12));
+            shipCombo.setForeground(Color.BLACK);
+            shipCombo.setBackground(new Color(50, 50, 80));
+            shipCombo.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+            shipCombo.setRenderer(new DefaultListCellRenderer() {
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                              boolean isSelected, boolean cellHasFocus) {
+                    super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                    MenuPanel.ShipItem item = (MenuPanel.ShipItem)value;
+                    setText(item.toString());
+                    setIcon(new ImageIcon(ResourceManager.getImage("/ship_" + item.type + ".png")
+                            .getScaledInstance(40, 40, Image.SCALE_SMOOTH)));
+                    setBackground(isSelected ? new Color(70, 130, 180) : new Color(50, 50, 80));
+                    setForeground(Color.WHITE);
+                    setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+                    return this;
+                }
+            });
+            shipPanel.add(shipCombo);
+            optionsPanel.add(shipPanel);
+
+            // Buttons
+            JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 10, 10));
+            buttonPanel.setBackground(new Color(0, 0, 0, 0));
+
+            JButton joinButton = new JButton("JOIN GAME");
+            joinButton.addActionListener(e -> {
+                String playerName = nameField.getText().trim();
+                if (playerName.isEmpty()) playerName = "Player1";
+                String serverIP = ipField.getText().trim();
+                boolean isCompetitive = versusButton.isSelected();
+                int shipType = ((MenuPanel.ShipItem)shipCombo.getSelectedItem()).type;
+
+                parent.startGame(playerName, 3, shipType, true, isCompetitive, serverIP);
+            });
+            SettingsPanel.styleButton(joinButton, new Color(70, 130, 180));
+
+            JButton hostButton = new JButton("HOST GAME");
+            hostButton.addActionListener(e -> {
+                String playerName = nameField.getText().trim();
+                if (playerName.isEmpty()) playerName = "Player1";
+                boolean isCompetitive = versusButton.isSelected();
+                int shipType = ((MenuPanel.ShipItem)shipCombo.getSelectedItem()).type;
+
+                new Thread(() -> {
+                    GameServer server = new GameServer();
+                    server.start();
+                }).start();
+
+                parent.startGame(playerName, 3, shipType, true, isCompetitive, "localhost");
+            });
+            SettingsPanel.styleButton(hostButton, new Color(46, 139, 87));
+
+            buttonPanel.add(joinButton);
+            buttonPanel.add(hostButton);
+            gbc.gridy++;
+            add(buttonPanel, gbc);
+
+            JButton backButton = new JButton("BACK TO MENU");
+            backButton.addActionListener(e -> parent.showMenu());
+            SettingsPanel.styleButton(backButton, new Color(139, 0, 139));
+            gbc.gridy++;
+            add(backButton, gbc);
+        }
+    }
 
     private static class SettingsPanel extends JPanel {
         public SettingsPanel(GameWindow parent) {
@@ -183,10 +368,8 @@ public class GameWindow extends JFrame {
         private void addVolumeControls(JPanel panel) {
             JPanel musicPanel = new JPanel();
             musicPanel.setBackground(new Color(0, 0, 0, 0));
-
-            // Modification ici - texte en noir
             JLabel musicLabel = new JLabel("Music Volume:");
-            musicLabel.setForeground(Color.white); // Texte en noir
+            musicLabel.setForeground(Color.white);
             musicPanel.add(musicLabel);
 
             JSlider musicSlider = new JSlider(0, 100, SoundManager.getMusicVolume());
@@ -196,22 +379,19 @@ public class GameWindow extends JFrame {
 
             JPanel soundPanel = new JPanel();
             soundPanel.setBackground(new Color(0, 0, 0, 0));
-
-            // Modification ici - texte en noir
             JLabel soundLabel = new JLabel("Sound Volume:");
-            soundLabel.setForeground(Color.white); // Texte en noir
+            soundLabel.setForeground(Color.white);
             soundPanel.add(soundLabel);
 
             JSlider soundSlider = new JSlider(0, 100, SoundManager.getSoundVolume());
             soundSlider.addChangeListener(e -> SoundManager.setSoundVolume(soundSlider.getValue()));
             soundPanel.add(soundSlider);
             panel.add(soundPanel);
-            musicSlider.setBackground(new Color(200, 200, 200)); // Fond clair
-            musicSlider.setForeground(Color.BLACK); // Curseur en noir
 
-// Pour le slider de son
-            soundSlider.setBackground(new Color(200, 200, 200)); // Fond clair
-            soundSlider.setForeground(Color.BLACK); // Curseur en noir
+            musicSlider.setBackground(new Color(200, 200, 200));
+            musicSlider.setForeground(Color.BLACK);
+            soundSlider.setBackground(new Color(200, 200, 200));
+            soundSlider.setForeground(Color.BLACK);
         }
 
         private static void styleButton(JButton button, Color color) {
@@ -221,7 +401,6 @@ public class GameWindow extends JFrame {
             button.setFocusPainted(false);
             button.setBorder(BorderFactory.createEmptyBorder(10, 25, 10, 25));
             button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
             button.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseEntered(MouseEvent e) {
@@ -229,7 +408,6 @@ public class GameWindow extends JFrame {
                     button.setForeground(Color.BLACK);
                     SoundManager.playSound("/button_hover.wav");
                 }
-
                 @Override
                 public void mouseExited(MouseEvent e) {
                     button.setBackground(color);
