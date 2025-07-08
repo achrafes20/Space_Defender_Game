@@ -1,13 +1,6 @@
-# 🚀 Space Defender Game
-
-Un jeu d'arcade 2D captivant inspiré des classiques du genre "Space Invaders", développé en Java avec **Java Swing**. Défendez la Terre contre des vagues d'ennemis interstellaires dans un gameplay rapide et addictif !
-
-![Preview](./resources/game_icon.png) <!-- Tu peux ajouter une image ici -->
-
----
-
 # 🚀 Space Defender Game – Projet Java 
 
+![Preview](./resources/game_icon.png)
 
 ## 🎮 Description du Jeu
 
