@@ -6,22 +6,60 @@ Un jeu d'arcade 2D captivant inspiré des classiques du genre "Space Invaders", 
 
 ---
 
-## 🎮 Fonctionnalités
+# 🚀 Space Defender Game – Projet Java 
 
-- 👾 Gameplay en temps réel avec tirs et ennemis dynamiques
-- 💥 Gestion des collisions entre les tirs et les ennemis
-- 🛡️ Déplacement fluide du vaisseau spatial
-- 🌌 Niveau unique avec difficulté progressive
-- 🔊 Effets sonores intégrés *(optionnels à intégrer)*
+
+## 🎮 Description du Jeu
+
+**Space Defender** est un jeu de tir spatial en Java où le joueur contrôle un vaisseau pour éliminer des drones ennemis. Le jeu comporte plusieurs niveaux, avec une difficulté croissante. Une version évoluée permet un **mode multijoueur en réseau**.
+
+🧠 Ce projet permet de mettre en œuvre les notions de :
+- Programmation événementielle (Swing / JavaFX)
+- Threads pour l’animation
+- Communication réseau (Sockets Java)
+
+---
+
+## 🧩 Fonctionnalités
+
+### ✅ Version Mono-joueur
+- 🕹️ Contrôle du vaisseau via le clavier
+- 🎯 Tir de projectiles pour éliminer les ennemis
+- 💥 Animation d'explosion lors des collisions
+- 🧱 Gestion des niveaux et progression
+- 🧾 Affichage du score, du nom du joueur, du niveau et des vies restantes (interface graphique)
+- 💾 Sauvegarde des parties et scores dans une base de données
+
+### 🌐 Version Multijoueur (2e version)
+- 🔗 Connexion client-serveur via **Java Sockets**
+- 🆚 Mode duel compétitif entre joueurs
+- 🔄 Synchronisation des actions en temps réel
+- 💬 Système de chat intégré
+- 👥 Affichage de l’état de chaque joueur
 
 ---
 
-## 🧪 Technologies utilisées
+## 🖥️ Interface Utilisateur
 
-- **Langage :** Java
-- **Interface graphique :** Java Swing
-- **Gestion des événements clavier** pour les contrôles
+- 🛫 Écran de démarrage : choix du nom du joueur, avion et niveau
+- 🧾 InfoBoard (score, joueur, niveau)
+- ❤️ Vies restantes affichées sous forme d’icônes
+- 💥 Animations visuelles (explosions, tirs)
 
 ---
+
+## 🧪 Technologies et Concepts
+
+| Technologie / Concept | Utilisé |
+|-----------------------|---------|
+| Java (JDK 8+)         | ✅ |
+| Swing / JavaFX        | ✅ |
+| Programmation événementielle | ✅ |
+| Threads (Runnable)    | ✅ |
+| JDBC (Base de données pour les scores) | ✅ |
+| Java Sockets (TCP)    | ✅ (mode réseau) |
+
+---
+
 
 
