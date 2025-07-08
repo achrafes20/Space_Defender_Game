@@ -2,7 +2,7 @@
 
 Un jeu d'arcade 2D captivant inspiré des classiques du genre "Space Invaders", développé en Java avec **Java Swing**. Défendez la Terre contre des vagues d'ennemis interstellaires dans un gameplay rapide et addictif !
 
-![Preview](./assets/screenshot.png) <!-- Tu peux ajouter une image ici -->
+![Preview](./resources/game_icon.png) <!-- Tu peux ajouter une image ici -->
 
 ---
 
