@@ -56,11 +56,12 @@
 
 ## 📸 Aperçu du jeu
 
-![Menu](./aperçu/img1.png)
+<p align="center">
+  <img src="./aperçu/img1.png" width="30%" />
+  <img src="./aperçu/img1.png" width="30%" />
+  <img src="./aperçu/img1.png" width="30%" />
+</p>
 
-![Menu](./aperçu/img2.png)
-
-![Menu](./aperçu/img3.png)
 
 
 ---
