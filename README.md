@@ -58,8 +58,8 @@
 
 <p align="center">
   <img src="./aperçu/img1.png" width="30%" />
-  <img src="./aperçu/img1.png" width="30%" />
-  <img src="./aperçu/img1.png" width="30%" />
+  <img src="./aperçu/img2.png" width="30%" />
+  <img src="./aperçu/img3.png" width="30%" />
 </p>
 
 
