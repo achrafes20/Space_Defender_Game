@@ -58,7 +58,9 @@
 
 <p align="center">
   <img src="./aperçu/img1.png" width="50%" />
+  <br>
   <img src="./aperçu/img2.png" width="50%" />
+  <br>
   <img src="./aperçu/img3.png" width="50%" />
 </p>
 
